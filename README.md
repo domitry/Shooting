@@ -1,5 +1,5 @@
 # Shooting
-Self-XSSを用いたSlack Botにする予定.
+Shooting game working on Slack Web App.
 
 ![](https://i.gyazo.com/dfb12b4bfcfc79dbeca9df2d69a209b7.png)
 
