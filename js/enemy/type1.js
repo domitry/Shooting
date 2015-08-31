@@ -11,7 +11,8 @@ function Type1(x, y, tx, ty, time, leave_cnt, color, options){
     this.time = time;
     this.cnt = 0;
     this.hp = 10;
-    this.obj = this.obj_manager.add("\u96d1", x, y, dx, dy, true, {
+    this.obj = this.obj_manager.add("\u96d1", x, y, dx, dy, {
+        live_even_outside: true,
         color: color,
         size: 25
     });
@@ -30,7 +31,7 @@ Type1.prototype.update = function(){
         if(this.cnt % 15 == 0){
             var dx = (this.options.self.x - this.obj.x)/100;
             var dy = (this.options.self.y - this.obj.y)/100;
-            this.obj_manager.add("\u26AB", this.obj.x, this.obj.y, dx, dy, false);
+            this.obj_manager.add("\u26AB", this.obj.x, this.obj.y, dx, dy);
         }
     }else{
         // sayo-nara

@@ -14,7 +14,8 @@ function Boss1(tx, ty, time, options){
     this.time = time;
     this.cnt = 0;
     this.hp = 100;
-    this.tsuyoi = this.obj_manager.add("\u5f37", cx, cy, 0, dy, true, {
+    this.tsuyoi = this.obj_manager.add("\u5f37", cx, cy, 0, dy, {
+        live_even_outside: true,
         size: TSUYOI_WIDTH,
         bold: true
     });
@@ -30,7 +31,8 @@ function Boss1(tx, ty, time, options){
         var x = cx + this.r*Math.cos(i*this.diff_theta) + YOWAI_WIDTH/2;
         var y = cy + this.r*Math.sin(i*this.diff_theta) + YOWAI_WIDTH/2;
 
-        this.yowais.push(this.obj_manager.add("\u5f31", x, y, 0, dy, true, {
+        this.yowais.push(this.obj_manager.add("\u5f31", x, y, 0, dy, {
+            live_even_outside: true,
             size: YOWAI_WIDTH, 
             bold: true
         }));
@@ -80,7 +82,7 @@ Boss1.prototype.update = function(){
             if(i%2 == this.shooting_yowai){
                 var dx = (this.options.self.x - yowai.x)/100;
                 var dy = (this.options.self.y - yowai.y)/100;
-                var b = this.obj_manager.add("\u26AB", yowai.x, yowai.y, dx, dy, false);
+                var b = this.obj_manager.add("\u26AB", yowai.x, yowai.y, dx, dy);
                 b.changeColor("#f00");
             }
         }).bind(this));
@@ -91,9 +93,9 @@ Boss1.prototype.update = function(){
         var y = this.tsuyoi.y + this.tsuyoi_offset;
         var cx = this.tsuyoi.x + this.tsuyoi_offset - 15;
         var o = {color: "#ff8000", size: 30};
-        var bc = this.obj_manager.add("\u25a0", cx, y, 0, 20, false, o);
-        var bl = this.obj_manager.add("\u25a0", cx-20, y, 0, 20, false, o);
-        var br = this.obj_manager.add("\u25a0", cx+20, y, 0, 20, false, o);
+        var bc = this.obj_manager.add("\u25a0", cx, y, 0, 20, o);
+        var bl = this.obj_manager.add("\u25a0", cx-20, y, 0, 20, o);
+        var br = this.obj_manager.add("\u25a0", cx+20, y, 0, 20, o);
         
     }else{
         //// move tsuyoi

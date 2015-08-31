@@ -4,7 +4,8 @@ function Object(parent, str, x, y, dx, dy, _options){
     this.options = $.extend({
         size: 18,
         bold: false,
-        color: "#000"
+        color: "#000",
+        live_even_outside: false
     }, _options);
 
     this.x = x;

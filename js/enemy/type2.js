@@ -11,7 +11,8 @@ function Type2(x, y, tx, ty, time, leave_cnt, color, options){
     this.time = time;
     this.cnt = 0;
     this.hp = 10;
-    this.obj = this.obj_manager.add("\u9b5a", x, y, dx, dy, true, {
+    this.obj = this.obj_manager.add("\u9b5a", x, y, dx, dy, {
+        live_even_outside: true,
         color: color,
         size: 25
     });
@@ -34,7 +35,7 @@ Type2.prototype.update = function(){
             for(var i=0; i<DIR_NUM; i++){
                 var dx = v*Math.cos(i*d_theta);
                 var dy = v*Math.sin(i*d_theta);
-                this.obj_manager.add("\u203b", this.obj.x, this.obj.y, dx, dy, false);
+                this.obj_manager.add("\u203b", this.obj.x, this.obj.y, dx, dy);
             }
         }
     }else{

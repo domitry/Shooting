@@ -15,7 +15,8 @@ function Boss1(tx, ty, time, options){
     this.time = time;
     this.cnt = 0;
     this.hp = 100;
-    this.tsuyoi = this.obj_manager.add("\u5f37", cx, cy, 0, dy, true, {
+    this.tsuyoi = this.obj_manager.add("\u5f37", cx, cy, 0, dy, {
+        live_even_outside: true,
         size: TSUYOI_WIDTH,
         bold: true
     });
@@ -31,7 +32,8 @@ function Boss1(tx, ty, time, options){
         var x = cx + this.r*Math.cos(i*this.diff_theta) + YOWAI_WIDTH/2;
         var y = cy + this.r*Math.sin(i*this.diff_theta) + YOWAI_WIDTH/2;
 
-        this.yowais.push(this.obj_manager.add("\u5f31", x, y, 0, dy, true, {
+        this.yowais.push(this.obj_manager.add("\u5f31", x, y, 0, dy, {
+            live_even_outside: true,
             size: YOWAI_WIDTH, 
             bold: true
         }));
@@ -81,7 +83,7 @@ Boss1.prototype.update = function(){
             if(i%2 == this.shooting_yowai){
                 var dx = (this.options.self.x - yowai.x)/100;
                 var dy = (this.options.self.y - yowai.y)/100;
-                var b = this.obj_manager.add("\u26AB", yowai.x, yowai.y, dx, dy, false);
+                var b = this.obj_manager.add("\u26AB", yowai.x, yowai.y, dx, dy);
                 b.changeColor("#f00");
             }
         }).bind(this));
@@ -92,9 +94,9 @@ Boss1.prototype.update = function(){
         var y = this.tsuyoi.y + this.tsuyoi_offset;
         var cx = this.tsuyoi.x + this.tsuyoi_offset - 15;
         var o = {color: "#ff8000", size: 30};
-        var bc = this.obj_manager.add("\u25a0", cx, y, 0, 20, false, o);
-        var bl = this.obj_manager.add("\u25a0", cx-20, y, 0, 20, false, o);
-        var br = this.obj_manager.add("\u25a0", cx+20, y, 0, 20, false, o);
+        var bc = this.obj_manager.add("\u25a0", cx, y, 0, 20, o);
+        var bl = this.obj_manager.add("\u25a0", cx-20, y, 0, 20, o);
+        var br = this.obj_manager.add("\u25a0", cx+20, y, 0, 20, o);
         
     }else{
         //// move tsuyoi
@@ -139,7 +141,8 @@ function Type1(x, y, tx, ty, time, leave_cnt, color, options){
     this.time = time;
     this.cnt = 0;
     this.hp = 10;
-    this.obj = this.obj_manager.add("\u96d1", x, y, dx, dy, true, {
+    this.obj = this.obj_manager.add("\u96d1", x, y, dx, dy, {
+        live_even_outside: true,
         color: color,
         size: 25
     });
@@ -158,7 +161,7 @@ Type1.prototype.update = function(){
         if(this.cnt % 15 == 0){
             var dx = (this.options.self.x - this.obj.x)/100;
             var dy = (this.options.self.y - this.obj.y)/100;
-            this.obj_manager.add("\u26AB", this.obj.x, this.obj.y, dx, dy, false);
+            this.obj_manager.add("\u26AB", this.obj.x, this.obj.y, dx, dy);
         }
     }else{
         // sayo-nara
@@ -189,7 +192,8 @@ function Type2(x, y, tx, ty, time, leave_cnt, color, options){
     this.time = time;
     this.cnt = 0;
     this.hp = 10;
-    this.obj = this.obj_manager.add("\u9b5a", x, y, dx, dy, true, {
+    this.obj = this.obj_manager.add("\u9b5a", x, y, dx, dy, {
+        live_even_outside: true,
         color: color,
         size: 25
     });
@@ -212,7 +216,7 @@ Type2.prototype.update = function(){
             for(var i=0; i<DIR_NUM; i++){
                 var dx = v*Math.cos(i*d_theta);
                 var dy = v*Math.sin(i*d_theta);
-                this.obj_manager.add("\u203b", this.obj.x, this.obj.y, dx, dy, false);
+                this.obj_manager.add("\u203b", this.obj.x, this.obj.y, dx, dy);
             }
         }
     }else{
@@ -358,13 +362,13 @@ module.exports = {
         return this;
     },
     start: function(){
-        var self = this.obj_manager.add("\u672a", this.options.game_width/2, this.options.game_height-30, 0, 0, true);
+        var self = this.obj_manager.add("\u672a", this.options.game_width/2, this.options.game_height-30, 0, 0, {live_even_outside: true});
 
         var nf = function(){};
         this.key_manager.register(37, nf, nf, function(){self.x -= 3;});
         this.key_manager.register(39, nf, nf, function(){self.x += 3;});
         this.key_manager.register(32, (function(){
-            this.obj_manager.add("\u26AC", self.x, self.y, 0, -3, false);
+            this.obj_manager.add("\u26AC", self.x, self.y, 0, -3);
         }).bind(this), nf, nf);
 
         this.enemy_manager.init(this.obj_manager, {self: self});
@@ -403,10 +407,9 @@ module.exports = {
         return this;
     },
 
-    add: function(str, x, y, dx, dy, live_even_outside, options){
+    add: function(str, x, y, dx, dy, options){
         var Object = require("./object.js");
         var obj = new Object(this.div, str, x, y, dx, dy, options);
-        obj.live_even_outside = live_even_outside;
 
         this.obj_stack.push(obj);
 
@@ -419,7 +422,7 @@ module.exports = {
         this.obj_stack = $.grep(this.obj_stack, function(o){
             var res = o.update();
 
-            if(!res || ((o.x<0 || o.y<0 || o.x > options.game_width || o.y > options.game_height)&& !o.live_even_outside)){
+            if(!res || ((o.x<0 || o.y<0 || o.x > options.game_width || o.y > options.game_height)&& !o.options.live_even_outside)){
                 o.clear();
                 return false;
             }
@@ -436,7 +439,8 @@ function Object(parent, str, x, y, dx, dy, _options){
     this.options = $.extend({
         size: 18,
         bold: false,
-        color: "#000"
+        color: "#000",
+        live_even_outside: false
     }, _options);
 
     this.x = x;

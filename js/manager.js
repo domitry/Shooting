@@ -15,13 +15,13 @@ module.exports = {
         return this;
     },
     start: function(){
-        var self = this.obj_manager.add("\u672a", this.options.game_width/2, this.options.game_height-30, 0, 0, true);
+        var self = this.obj_manager.add("\u672a", this.options.game_width/2, this.options.game_height-30, 0, 0, {live_even_outside: true});
 
         var nf = function(){};
         this.key_manager.register(37, nf, nf, function(){self.x -= 3;});
         this.key_manager.register(39, nf, nf, function(){self.x += 3;});
         this.key_manager.register(32, (function(){
-            this.obj_manager.add("\u26AC", self.x, self.y, 0, -3, false);
+            this.obj_manager.add("\u26AC", self.x, self.y, 0, -3);
         }).bind(this), nf, nf);
 
         this.enemy_manager.init(this.obj_manager, {self: self});
