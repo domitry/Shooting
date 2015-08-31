@@ -51,6 +51,14 @@ Boss1.prototype.update = function(){
         $.each(this.yowais, function(i, yowai){yowai.dy = 0;});
     }
 
+    //// Change BOSS Bar
+    if(this.cnt < this.time){
+        $("#boss_bar").css("width", this.cnt*(this.options.game_width/this.time));
+    }else{
+        $("#boss_bar")
+            .css("width", this.tsuyoi.hp*(this.options.game_width/50));
+    }
+
     //// rotate yowai
     if(this.cnt > this.time){
         var cx = this.tsuyoi.x;

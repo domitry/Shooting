@@ -8,6 +8,9 @@ module.exports = function(_options){
 
     $("#msgs_div").append("<div id=\"stage\"></div>");
 
+    $("#msgs_div")
+        .append("<div id=\"boss_bar\"></div>");
+
     var stage = $("#stage")
             .css({
                 width: options.game_width,
@@ -16,6 +19,15 @@ module.exports = function(_options){
                 position: "relative",
                 padding: 0
             });
+
+
+    $("#boss_bar")
+        .css({
+            position: "relative",
+            width: "0px",
+            height: "10px",
+            "background-color": "#f00"
+        });
 
     (require("./manager.js"))
         .init(stage, options)
