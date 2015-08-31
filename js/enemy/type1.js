@@ -8,14 +8,16 @@ function Type1(x, y, tx, ty, time, leave_cnt, color, options){
     var dy = (ty - y)/time;
 
     this.leave_cnt = leave_cnt;
+    this.score = 500;
     this.time = time;
     this.cnt = 0;
-    this.hp = 10;
-    this.obj = this.obj_manager.add("\u96d1", x, y, dx, dy, {
+    this.obj = this.obj_manager.add("en", "\u96d1", x, y, dx, dy, {
         live_even_outside: true,
         color: color,
-        size: 25
+        size: 25,
+        radius: 20
     });
+    this.obj.hp = 10;
 }
 
 Type1.prototype.update = function(){
@@ -31,19 +33,27 @@ Type1.prototype.update = function(){
         if(this.cnt % 15 == 0){
             var dx = (this.options.self.x - this.obj.x)/100;
             var dy = (this.options.self.y - this.obj.y)/100;
-            this.obj_manager.add("\u26AB", this.obj.x, this.obj.y, dx, dy);
+            this.obj_manager.add("en_ball", "\u26AB", this.obj.x, this.obj.y, dx, dy);
         }
     }else{
         // sayo-nara
-        this.obj.dy = -1;
+        this.obj.dy = -3;
         if(this.obj.y < 5)return false;
+    }
+
+    if(this.obj.hp <= 0){
+        require("../effect.js").explode(this.obj.x, this.obj.y);
+        return false;
     }
 
     return true;
 };
 
 Type1.prototype.clear = function(){
-    this.obj.update = function(){return false;};
+    this.obj.update = function(){
+        require("../effect.js").explode(this.x, this.y);
+        return false;
+    };
 };
 
 module.exports = Type1;

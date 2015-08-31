@@ -9,13 +9,16 @@ function Type2(x, y, tx, ty, time, leave_cnt, color, options){
 
     this.leave_cnt = leave_cnt;
     this.time = time;
+    this.score = 1000;
     this.cnt = 0;
     this.hp = 10;
-    this.obj = this.obj_manager.add("\u9b5a", x, y, dx, dy, {
+    this.obj = this.obj_manager.add("en", "\u9b5a", x, y, dx, dy, {
         live_even_outside: true,
         color: color,
-        size: 25
+        size: 25,
+        radius: 20
     });
+    this.obj.hp = 10;
 }
 
 Type2.prototype.update = function(){
@@ -29,26 +32,33 @@ Type2.prototype.update = function(){
         this.obj.dy = 0;
 
         if(this.cnt % 15 == 0){
-            var DIR_NUM = 8;
+            var DIR_NUM = 10;
             var d_theta = 2*Math.PI/DIR_NUM;
             var v = 5;
             for(var i=0; i<DIR_NUM; i++){
                 var dx = v*Math.cos(i*d_theta);
                 var dy = v*Math.sin(i*d_theta);
-                this.obj_manager.add("\u203b", this.obj.x, this.obj.y, dx, dy);
+                this.obj_manager.add("en_ball", "\u203b", this.obj.x, this.obj.y, dx, dy);
             }
         }
     }else{
         // sayo-nara
-        this.obj.dy = -1;
+        this.obj.dy = -3;
         if(this.obj.y < 5)return false;
+    }
+
+    if(this.obj.hp <= 0){
+        return false;
     }
 
     return true;
 };
 
 Type2.prototype.clear = function(){
-    this.obj.update = function(){return false;};
+    this.obj.update = function(){
+        require("../effect.js").explode(this.x, this.y);
+        return false;
+    };
 };
 
 module.exports = Type2;

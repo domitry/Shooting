@@ -12,13 +12,15 @@ function Boss1(tx, ty, time, options){
     var dy = (ty - cy)/time;
 
     this.time = time;
+    this.score = 10000;
     this.cnt = 0;
-    this.hp = 100;
-    this.tsuyoi = this.obj_manager.add("\u5f37", cx, cy, 0, dy, {
+    this.tsuyoi = this.obj_manager.add("en", "\u5f37", cx, cy, 0, dy, {
         live_even_outside: true,
         size: TSUYOI_WIDTH,
-        bold: true
+        bold: true,
+        radius: 25
     });
+    this.tsuyoi.hp = 50;
 
     ///// yowai
     this.yowais = [];
@@ -31,12 +33,17 @@ function Boss1(tx, ty, time, options){
         var x = cx + this.r*Math.cos(i*this.diff_theta) + YOWAI_WIDTH/2;
         var y = cy + this.r*Math.sin(i*this.diff_theta) + YOWAI_WIDTH/2;
 
-        this.yowais.push(this.obj_manager.add("\u5f31", x, y, 0, dy, {
+        this.yowais.push(this.obj_manager.add("en", "\u5f31", x, y, 0, dy, {
             live_even_outside: true,
-            size: YOWAI_WIDTH, 
-            bold: true
+            size: YOWAI_WIDTH,
+            bold: true,
+            radius: 10
         }));
     }
+
+    $.each(this.yowais, function(i, yowai){
+        yowai.hp=5;
+    });
 
     this.shooting_yowai = 0;
 }
@@ -87,10 +94,10 @@ Boss1.prototype.update = function(){
     //// shoot from yowai
     if((this.cnt - this.time)%50 == 0){
         $.each(this.yowais, (function(i, yowai){
-            if(i%2 == this.shooting_yowai){
+            if(i%2 == this.shooting_yowai && yowai.hp>0){
                 var dx = (this.options.self.x - yowai.x)/100;
                 var dy = (this.options.self.y - yowai.y)/100;
-                var b = this.obj_manager.add("\u26AB", yowai.x, yowai.y, dx, dy);
+                var b = this.obj_manager.add("en_ball", "\u26AB", yowai.x, yowai.y, dx, dy);
                 b.changeColor("#f00");
             }
         }).bind(this));
@@ -101,9 +108,9 @@ Boss1.prototype.update = function(){
         var y = this.tsuyoi.y + this.tsuyoi_offset;
         var cx = this.tsuyoi.x + this.tsuyoi_offset - 15;
         var o = {color: "#ff8000", size: 30};
-        var bc = this.obj_manager.add("\u25a0", cx, y, 0, 20, o);
-        var bl = this.obj_manager.add("\u25a0", cx-20, y, 0, 20, o);
-        var br = this.obj_manager.add("\u25a0", cx+20, y, 0, 20, o);
+        var bc = this.obj_manager.add("en_ball", "\u25a0", cx, y, 0, 20, o);
+        var bl = this.obj_manager.add("en_ball", "\u25a0", cx-20, y, 0, 20, o);
+        var br = this.obj_manager.add("en_ball", "\u25a0", cx+20, y, 0, 20, o);
         
     }else{
         //// move tsuyoi
@@ -116,11 +123,37 @@ Boss1.prototype.update = function(){
         this.tsuyoi.changeColor("rgb("+red +",0,0)");
     }
 
+    var effect = require("../effect.js");
+
+    //// check if it is dead
+    $.each(this.yowais, function(i, yowai){
+        if(yowai.hp <= 0){
+            yowai.update = function(){
+                effect.explode(yowai.x, yowai.y);
+                return false;
+            };
+        }
+    });
+
+    if(this.tsuyoi.hp <= 0){
+        effect.explode(this.tsuyoi.x, this.tsuyoi.y, {
+            speed: 5,
+            num: 30,
+            time: 1000,
+            r_max: 30
+        });
+        return false;
+    }
+
     return true;
 };
 
 Boss1.prototype.clear = function(){
-    this.obj.update = function(){return false;};
+    var ret_false = function(){return false;};
+    $.each(this.yowais, function(i, yowai){
+        yowai.update = ret_false;
+    });
+    this.tsuyoi.update = ret_false;
 };
 
 module.exports = Boss1;

@@ -5,6 +5,7 @@ function Object(parent, str, x, y, dx, dy, _options){
         size: 18,
         bold: false,
         color: "#000",
+        radius: 3,
         live_even_outside: false
     }, _options);
 
@@ -50,6 +51,14 @@ Object.prototype.clear = function(){
 
 Object.prototype.box = function(){
     return this.selection[0].getBoundingClientRect();
+};
+
+Object.prototype.center = function(){
+    var rect = this.box();
+    return {
+        x: rect.left + rect.width/2,
+        y: rect.top + rect.height/2
+    };
 };
 
 module.exports = Object;

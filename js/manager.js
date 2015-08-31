@@ -2,29 +2,46 @@
 
 module.exports = {
     init: function(div, _options){
-        var options = $.extend({}, _options);
+        var options = $.extend({
+            game_manager: this
+        }, _options);
 
         $.extend(this, {
             div: div,
             options: options,
             obj_manager: (require("./obj_manager.js")).init(div, options),
             enemy_manager: (require("./enemy_manager.js")),
-            key_manager: (require("./key_manager.js")).init()
+            key_manager: (require("./key_manager.js")).init(),
+            effect_system: (require("./effect.js")),
+            score: 0
         });
 
         return this;
     },
     start: function(){
-        var self = this.obj_manager.add("\u672a", this.options.game_width/2, this.options.game_height-30, 0, 0, {live_even_outside: true});
+        var self = this.obj_manager.add("self", "\u672a", this.options.game_width/2, this.options.game_height-30, 0, 0, {
+            radius: 10,
+            live_even_outside: true
+        });
+        self.hp = 50;
+        window.self = self;
+
+        this.obj_manager.register_collision_rule("self", "en_ball", (function(self, ball){
+            self.hp--;
+            $("#self_bar").css("width", (this.options.game_width/50)*(self.hp < 0 ? 0 : self.hp));
+            ball.clear();
+            if(self.hp <= 0)this.game_over();
+        }).bind(this));
 
         var nf = function(){};
         this.key_manager.register(37, nf, nf, function(){self.x -= 3;});
         this.key_manager.register(39, nf, nf, function(){self.x += 3;});
         this.key_manager.register(32, (function(){
-            this.obj_manager.add("\u26AC", self.x, self.y, 0, -3);
+            this.obj_manager.add("self_ball", "\u26AC", self.x, self.y, 0, -3);
         }).bind(this), nf, nf);
 
-        this.enemy_manager.init(this.obj_manager, {self: self});
+        this.enemy_manager.init(this.obj_manager, $.extend({self: self}, this.options));
+        this.effect_system.init(this.obj_manager);
 
         // fuck'n dirty
         var key_manager = this.key_manager;
@@ -32,14 +49,35 @@ module.exports = {
         var enemy_manager = this.enemy_manager;
         var cnt = 0;
 
+        var stop_flag = false;
+        this.stop = function(flag){
+            stop_flag = flag;
+        };
+
+        var thisObj = this; //....
+        var update_score = function(){
+            var text = "score: " + ("00000" + (thisObj.score)).slice(-6);
+            $("#score").text(text);
+        };
+
         (function(){
             key_manager.update();
             enemy_manager.update(cnt++);
             obj_manager.update();
+            update_score();
 
-            requestAnimationFrame(arguments.callee);
+            if(!stop_flag)
+                requestAnimationFrame(arguments.callee);
         })();
         
         return this;
+    },
+    game_over: function(){
+        this.stop(true);
+        this.div.append("<div> Game Over... </div>");
+    },
+    clear: function(){
+        this.stop(true);
+        this.div.append("<div> Game Clear!!! </div>");
     }
 };

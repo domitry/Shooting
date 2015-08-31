@@ -15,6 +15,9 @@ module.exports = function(_options){
     $("#msgs_div")
         .append("<div id=\"boss_bar\"></div>");
 
+    $("#msgs_div")
+        .append("<div id=\"score\">score: 000000</div>");
+
     var stage = $("#stage")
             .css({
                 width: options.game_width,

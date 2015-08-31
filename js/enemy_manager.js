@@ -4,13 +4,17 @@ module.exports = {
     init: function(obj_manager, _options){
         this.options = $.extend({
             self: null,
-            obj_manager: obj_manager
+            obj_manager: obj_manager,
+            game_manager: null
         }, _options);
 
         this.plan = require("./plan.js");
         this.enemy_type_list = require("./enemy/list.js");
 
-        window.enemys = this.enemy_stack;
+        obj_manager.register_collision_rule("en", "self_ball", function(en, ball){
+            en.hp--;
+            ball.clear();
+        });
 
         this.obj_manager = obj_manager;
         this.enemy_stack = [];
@@ -28,12 +32,13 @@ module.exports = {
             }).bind(this));
         }
 
-        this.enemy_stack = $.grep(this.enemy_stack, function(e){
+        this.enemy_stack = $.grep(this.enemy_stack, (function(e){
             if(!e.update()){
+                this.options.game_manager.score += e.score;
                 e.clear();
                 return false;
             };
             return true;
-        });
+        }).bind(this));
     }
 };
