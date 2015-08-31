@@ -1,0 +1,2 @@
+#!/bin/sh
+browserify -o game.js js/main.js
