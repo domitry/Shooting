@@ -6,7 +6,11 @@ module.exports = function(_options){
         game_height: 300
     }, _options);
 
-    $("#msgs_div").append("<div id=\"stage\"></div>");
+    $("#msgs_div")
+        .append("<div id=\"stage\"></div>");
+
+    $("#msgs_div")
+        .append("<div id=\"self_bar\"></div>");
 
     $("#msgs_div")
         .append("<div id=\"boss_bar\"></div>");
@@ -20,6 +24,13 @@ module.exports = function(_options){
                 padding: 0
             });
 
+    $("#self_bar")
+        .css({
+            position: "relative",
+            width: options.game_width,
+            height: "10px",
+            "background-color": "#00f"
+        });
 
     $("#boss_bar")
         .css({
