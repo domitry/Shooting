@@ -51,7 +51,6 @@ Type1.prototype.update = function(){
 
 Type1.prototype.clear = function(){
     this.obj.update = function(){
-        require("../effect.js").explode(this.x, this.y);
         return false;
     };
 };
