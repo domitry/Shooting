@@ -1,6 +1,9 @@
 /*global require, module, $, jQuery*/
 
 module.exports = {
+    0: [
+        {type: "title", arg: ["PRESS ENTER", true]}
+    ],
     100: [
         // type1: x, y, tx, ty, time, leave_cnt
         {type: "type1", arg: [100, 10, 400, 40, 50, 200, "#00f"]},
@@ -16,7 +19,10 @@ module.exports = {
         {type: "type2", arg: [250,-30, 400, 140, 50, 200, "#f00"]},
         {type: "type2", arg: [250, -30, 100, 140, 50, 200, "#f00"]}
     ],
-    1200: [
-        {type: "boss1", arg: [250, 50, 40]}
+    1600: [
+        {type: "title", arg: ["!! BOSS !!", false]}
+    ],
+    1800: [
+        {type: "boss1", arg: [250, 50, 40], clear: true}
     ]
 };
