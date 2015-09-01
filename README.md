@@ -5,7 +5,7 @@ STG working on Slack Web App.
 
 ## Try
 
-![The newest version here](https://dl.dropboxusercontent.com/u/47978121/shooting/index.html)
+[The newest version here](https://dl.dropboxusercontent.com/u/47978121/shooting/index.html)
 
 ## How to use
 
