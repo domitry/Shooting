@@ -48,6 +48,7 @@ Type2.prototype.update = function(){
     }
 
     if(this.obj.hp <= 0){
+        this.options.game_manager.score += this.score;
         return false;
     }
 

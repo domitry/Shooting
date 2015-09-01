@@ -124,11 +124,13 @@ Boss1.prototype.update = function(){
     }
 
     var effect = require("../effect.js");
+    var game_manager = this.options.game_manager;
 
     //// check if it is dead
     $.each(this.yowais, function(i, yowai){
         if(yowai.hp <= 0){
             yowai.update = function(){
+                game_manager.score += 100;
                 effect.explode(yowai.x, yowai.y);
                 return false;
             };
@@ -149,7 +151,12 @@ Boss1.prototype.update = function(){
 };
 
 Boss1.prototype.clear = function(){
+    //// Game clear
+    this.options.game_manager.score += this.score;
+    this.options.game_manager.clear();
+
     var ret_false = function(){return false;};
+
     $.each(this.yowais, function(i, yowai){
         yowai.update = ret_false;
     });

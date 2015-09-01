@@ -34,7 +34,6 @@ module.exports = {
 
         this.enemy_stack = $.grep(this.enemy_stack, (function(e){
             if(!e.update()){
-                this.options.game_manager.score += e.score;
                 e.clear();
                 return false;
             };
