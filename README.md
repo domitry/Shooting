@@ -1,4 +1,4 @@
-# Shooting
+# utf-8 shooting
 Shooting game working on Slack Web App.
 
 ![](https://i.gyazo.com/206f8d0ee7b24dcb1e37e56629cdad49.png)
