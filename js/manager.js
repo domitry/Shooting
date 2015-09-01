@@ -3,18 +3,25 @@
 module.exports = {
     init: function(div, _options){
         var options = $.extend({
-            game_manager: this
+            div: div
         }, _options);
+
+        var managers = {
+            game_manager: this,
+            obj_manager: (require("./obj_manager.js")).init(div, options),
+            enemy_manager: (require("./enemy_manager.js")),
+            key_manager: (require("./key_manager.js")).init(),
+            effect_system: (require("./effect.js"))
+        };
 
         $.extend(this, {
             div: div,
             options: options,
-            obj_manager: (require("./obj_manager.js")).init(div, options),
-            enemy_manager: (require("./enemy_manager.js")),
-            key_manager: (require("./key_manager.js")).init(),
-            effect_system: (require("./effect.js")),
             score: 0
         });
+
+        $.extend(this, managers);
+        $.extend(this.options, managers);
 
         return this;
     },
@@ -63,16 +70,22 @@ module.exports = {
             $("#score").text(text);
         };
 
-        (function(){
-            key_manager.update();
-            enemy_manager.update(cnt++);
-            obj_manager.update();
-            update_score();
-
-            if(!stop_flag)
-                requestAnimationFrame(arguments.callee);
-        })();
         
+        this.restart = function(){
+            stop_flag = false;
+
+            (function(){
+                key_manager.update();
+                enemy_manager.update(cnt++);
+                obj_manager.update();
+                update_score();
+
+                if(!stop_flag)
+                    requestAnimationFrame(arguments.callee);
+            })();
+        };
+
+        this.restart();
         return this;
     },
     game_over: function(){
