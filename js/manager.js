@@ -24,13 +24,16 @@ module.exports = {
             live_even_outside: true
         });
         self.hp = 50;
-        window.self = self;
 
         this.obj_manager.register_collision_rule("self", "en_ball", (function(self, ball){
             self.hp--;
             $("#self_bar").css("width", (this.options.game_width/50)*(self.hp < 0 ? 0 : self.hp));
             ball.clear();
-            if(self.hp <= 0)this.game_over();
+
+            if(self.hp <= 0){
+                this.effect_system.explode(self.x, self.y);
+                this.game_over();
+            }
         }).bind(this));
 
         var nf = function(){};

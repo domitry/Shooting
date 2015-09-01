@@ -49,6 +49,7 @@ Type2.prototype.update = function(){
 
     if(this.obj.hp <= 0){
         this.options.game_manager.score += this.score;
+        require("../effect.js").explode(this.obj.x, this.obj.y);
         return false;
     }
 
