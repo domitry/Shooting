@@ -1,7 +1,7 @@
 # Shooting
 Shooting game working on Slack Web App.
 
-![](https://i.gyazo.com/dfb12b4bfcfc79dbeca9df2d69a209b7.png)
+![](https://i.gyazo.com/206f8d0ee7b24dcb1e37e56629cdad49.png)
 
 ## How to use
 
