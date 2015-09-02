@@ -10,7 +10,7 @@ function Title(msg, press_key, _options){
 
     this.options.div.append("<div id=\"title\"></div>");
     this.content = $("#title")
-        .text(msg)
+        .html(msg)
         .css({
             position: "absolute",
             top: this.options.game_height/2 - 30,
