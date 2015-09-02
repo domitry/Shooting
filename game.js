@@ -165,11 +165,13 @@ Boss1.prototype.update = function(){
     }
 
     var effect = require("../effect.js");
+    var game_manager = this.options.game_manager;
 
     //// check if it is dead
     $.each(this.yowais, function(i, yowai){
         if(yowai.hp <= 0){
             yowai.update = function(){
+                game_manager.score += 100;
                 effect.explode(yowai.x, yowai.y);
                 return false;
             };
@@ -192,7 +194,7 @@ Boss1.prototype.update = function(){
 Boss1.prototype.clear = function(){
     //// Game clear
     this.options.game_manager.score += this.score;
-    this.options.game_manager.clear();
+    this.options.enemy_manager.next_stage();
 
     var ret_false = function(){return false;};
 
@@ -211,10 +213,11 @@ module.exports = {
     title: require("./title.js"),
     type1: require("./type1.js"),
     type2: require("./type2.js"),
+    type3: require("./type3.js"),
     boss1: require("./boss1.js")
 };
 
-},{"./boss1.js":2,"./title.js":4,"./type1.js":5,"./type2.js":6}],4:[function(require,module,exports){
+},{"./boss1.js":2,"./title.js":4,"./type1.js":5,"./type2.js":6,"./type3.js":7}],4:[function(require,module,exports){
 /*global require , module, $, jQuery*/
 
 function Title(msg, press_key, _options){
@@ -227,7 +230,7 @@ function Title(msg, press_key, _options){
 
     this.options.div.append("<div id=\"title\"></div>");
     this.content = $("#title")
-        .text(msg)
+        .html(msg)
         .css({
             position: "absolute",
             top: this.options.game_height/2 - 30,
@@ -242,6 +245,7 @@ function Title(msg, press_key, _options){
         this.options.key_manager.register(0x0D, (function(){
             this.update = function(){return false;};
             this.options.game_manager.restart();
+            this.options.enemy_manager.next_stage();
         }).bind(this), nf, nf);
 
         this.options.game_manager.stop(true);
@@ -391,6 +395,83 @@ Type2.prototype.clear = function(){
 module.exports = Type2;
 
 },{"../effect.js":1}],7:[function(require,module,exports){
+/*global require , module, $, jQuery*/
+
+function Type3(x, y0, ty, color, options){
+    this.options = options;
+    this.obj_manager = options.obj_manager;
+
+    this.time = 50;
+    this.y0 = y0;
+    this.ty = ty;
+    this.score = 1000;
+    this.leave_cnt = 500;
+    this.cnt = 0;
+    this.obj = this.obj_manager.add("en", "\u6575", x, y0, 0, 0, {
+        live_even_outside: true,
+        color: color,
+        size: 25,
+        radius: 20
+    });
+    this.obj.hp = 10;
+}
+
+var target_x=0, target_y=0;
+
+Type3.prototype.update = function(){
+    this.cnt++;
+    
+    if(this.cnt < this.time){
+        var int = (this.time - this.cnt);
+        this.obj.y = Math.sin((this.cnt/this.time)*(Math.PI/2))*(this.ty - this.y0) + this.y0;
+        return true;
+    }else if(this.cnt == this.time){
+        this.ball_dx = (this.options.self.x - this.obj.x)/100;
+        this.ball_dy = (this.options.self.y - this.obj.y)/100;
+    }else if(this.cnt < this.time + 49){
+        if(this.cnt%5==0){
+            var ball = this.options.obj_manager.add("en_ball", "\u2606", this.obj.x, this.obj.y, this.ball_dx, this.ball_dy, {});
+            ball.cnt = 0;
+
+            var func = ball.update;
+            ball.update = function(){
+                this.cnt++;
+                if(this.cnt == 50){
+                    this.dx = (target_x - this.x)/50;
+                    this.dy = (target_y - this.y)/50;
+                }
+                func.apply(this);
+                return true;
+            };
+        }
+
+    }else if(this.cnt - this.time == 50){
+        target_x = this.options.self.x;
+        target_y= this.options.self.y;
+    }else {
+        // sayo-nara
+        this.obj.dy = -3;
+        if(this.obj.y < 5)return false;
+    }
+
+    if(this.obj.hp <= 0){
+        this.options.game_manager.score += this.score;
+        require("../effect.js").explode(this.obj.x, this.obj.y);
+        return false;
+    }
+
+    return true;
+};
+
+Type3.prototype.clear = function(){
+    this.obj.update = function(){
+        return false;
+    };
+};
+
+module.exports = Type3;
+
+},{"../effect.js":1}],8:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 module.exports = {
@@ -401,7 +482,9 @@ module.exports = {
             game_manager: null
         }, _options);
 
-        this.plan = require("./plan.js");
+        this.plans = require("./plan.js");
+        this.plan = this.plans[0];
+        this.seek = 0;
         this.enemy_type_list = require("./enemy/list.js");
 
         obj_manager.register_collision_rule("en", "self_ball", function(en, ball){
@@ -432,10 +515,14 @@ module.exports = {
             };
             return true;
         }).bind(this));
+    },
+    next_stage: function(){
+        this.plan = this.plans[++this.seek];
+        this.options.game_manager.reset_cnt();
     }
 };
 
-},{"./enemy/list.js":3,"./plan.js":13}],8:[function(require,module,exports){
+},{"./enemy/list.js":3,"./plan.js":14}],9:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 module.exports = function(_options){
@@ -486,7 +573,7 @@ module.exports = function(_options){
         .start();
 };
 
-},{"./manager.js":10}],9:[function(require,module,exports){
+},{"./manager.js":11}],10:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 module.exports = {
@@ -530,7 +617,7 @@ module.exports = {
     }
 };
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 module.exports = {
@@ -603,6 +690,10 @@ module.exports = {
             $("#score").text(text);
         };
 
+        this.reset_cnt = function(){
+            cnt=0;
+        };
+
         
         this.restart = function(){
             stop_flag = false;
@@ -626,12 +717,12 @@ module.exports = {
         this.div.append("<div> Game Over... </div>");
     },
     clear: function(){
-        this.stop(true);
+        //this.stop(true);
         this.div.append("<div> Game Clear!!! </div>");
     }
 };
 
-},{"./effect.js":1,"./enemy_manager.js":7,"./key_manager.js":9,"./obj_manager.js":11}],11:[function(require,module,exports){
+},{"./effect.js":1,"./enemy_manager.js":8,"./key_manager.js":10,"./obj_manager.js":12}],12:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 module.exports = {
@@ -709,7 +800,7 @@ module.exports = {
     }
 };
 
-},{"./object.js":12}],12:[function(require,module,exports){
+},{"./object.js":13}],13:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 function Object(parent, str, x, y, dx, dy, _options){
@@ -775,37 +866,66 @@ Object.prototype.center = function(){
 
 module.exports = Object;
 
-},{"./util.js":14}],13:[function(require,module,exports){
+},{"./util.js":15}],14:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
-module.exports = {
-    0: [
-        {type: "title", arg: ["PRESS ENTER", true]}
-    ],
-    100: [
-        // type1: x, y, tx, ty, time, leave_cnt
-        {type: "type1", arg: [100, 10, 400, 40, 50, 400, "#00f"]},
-        {type: "type1", arg: [400, 10, 100, 40, 50, 400, "#00f"]}
-    ],
-    600: [
-        {type: "type2", arg: [250,-30, 400, 40, 50, 400, "#f00"]},
-        {type: "type2", arg: [250, -30, 40, 140, 50, 400, "#f00"]}
-    ],
-    1100: [
-        {type: "type1", arg: [100, 10, 400, 40, 50, 400, "#00f"]},
-        {type: "type1", arg: [400, 10, 100, 40, 50, 400, "#00f"]},
-        {type: "type2", arg: [250,-30, 400, 140, 50, 400, "#f00"]},
-        {type: "type2", arg: [250, -30, 100, 140, 50, 400, "#f00"]}
-    ],
-    1600: [
-        {type: "title", arg: ["!! BOSS !!", false]}
-    ],
-    1800: [
-        {type: "boss1", arg: [250, 50, 40], clear: true}
-    ]
-};
+module.exports = [
+    {
+        0: [
+            {type: "title", arg: ["PRESS ENTER", true]}
+        ]
+    },
+    {
+        0: [
+            {type: "title", arg: ["Stage1", false]}
+        ],
+        100: [
+            // type1: x, y, tx, ty, time, leave_cnt
+            {type: "type3", arg: [250, -10, 80, "#0f0"]},
+            {type: "type1", arg: [100, 10, 400, 40, 50, 400, "#00f"]},
+            {type: "type1", arg: [400, 10, 100, 40, 50, 400, "#00f"]}
+        ],
+        600: [
+            {type: "type2", arg: [250,-30, 400, 40, 50, 400, "#f00"]},
+            {type: "type2", arg: [250, -30, 40, 140, 50, 400, "#f00"]}
+        ],
+        1100: [
+            {type: "type1", arg: [100, 10, 400, 40, 50, 400, "#00f"]},
+            {type: "type1", arg: [400, 10, 100, 40, 50, 400, "#00f"]},
+            {type: "type2", arg: [250,-30, 400, 140, 50, 400, "#f00"]},
+            {type: "type2", arg: [250, -30, 100, 140, 50, 400, "#f00"]}
+        ],
+        1500: [
+            {type: "type2", arg: [250,-30, 250, 90, 100, 500, "#f00"]},
+        ],
+        1600: [
+            {type: "type3", arg: [100, -10, 40, "#0f0"]}
+        ],
+        1650: [
+            {type: "type3", arg: [250, -10, 50, "#0f0"]}
+        ],
+        1700: [
+            {type: "type3", arg: [400, -10, 40, "#0f0"]}
+        ],
+        2100: [
+            {type: "title", arg: ["!! BOSS !!", false]}
+        ],
+        2300: [
+            {type: "boss1", arg: [250, 50, 40], clear: true}
+        ]
+    },
+    {
+        0: [
+            {type: "title", arg: ["Stage2", false]}
+        ],
+        100: [
+            {type: "type2", arg: [250,-30, 400, 40, 50, 400, "#f00"]},
+            {type: "type2", arg: [250, -30, 40, 140, 50, 400, "#f00"]}
+        ]
+    }
+];
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 module.exports = {
@@ -823,11 +943,11 @@ module.exports = {
     }
 };
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 $(function(){
     (require("./init.js"))();
 });
 
-},{"./init.js":8}]},{},[15]);
+},{"./init.js":9}]},{},[16]);

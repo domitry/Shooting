@@ -8,7 +8,9 @@ module.exports = {
             game_manager: null
         }, _options);
 
-        this.plan = require("./plan.js");
+        this.plans = require("./plan.js");
+        this.plan = this.plans[0];
+        this.seek = 0;
         this.enemy_type_list = require("./enemy/list.js");
 
         obj_manager.register_collision_rule("en", "self_ball", function(en, ball){
@@ -39,5 +41,9 @@ module.exports = {
             };
             return true;
         }).bind(this));
+    },
+    next_stage: function(){
+        this.plan = this.plans[++this.seek];
+        this.options.game_manager.reset_cnt();
     }
 };

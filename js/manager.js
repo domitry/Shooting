@@ -70,6 +70,10 @@ module.exports = {
             $("#score").text(text);
         };
 
+        this.reset_cnt = function(){
+            cnt=0;
+        };
+
         
         this.restart = function(){
             stop_flag = false;

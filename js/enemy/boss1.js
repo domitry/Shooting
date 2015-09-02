@@ -153,7 +153,7 @@ Boss1.prototype.update = function(){
 Boss1.prototype.clear = function(){
     //// Game clear
     this.options.game_manager.score += this.score;
-    this.options.game_manager.clear();
+    this.options.enemy_manager.next_stage();
 
     var ret_false = function(){return false;};
 

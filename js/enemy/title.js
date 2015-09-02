@@ -25,6 +25,7 @@ function Title(msg, press_key, _options){
         this.options.key_manager.register(0x0D, (function(){
             this.update = function(){return false;};
             this.options.game_manager.restart();
+            this.options.enemy_manager.next_stage();
         }).bind(this), nf, nf);
 
         this.options.game_manager.stop(true);
