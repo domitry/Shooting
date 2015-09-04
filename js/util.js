@@ -72,5 +72,10 @@ module.exports = {
         return false;
     },
     ret_no: function(){
+    },
+    mul: function(arr, times){
+        var ret=[];
+        for(var i=0; i<times; i++)ret = ret.concat(arr);
+        return ret;
     }
 };
