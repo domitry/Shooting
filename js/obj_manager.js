@@ -14,9 +14,14 @@ module.exports = {
                 "en_ball": [],
                 "others": []
             },
+            obj_stack: {},
             rules: {}
         });
 
+        $.each(types, function(i, name){
+            this.obj_stack[name] = [];
+        }.bind(this));
+   
         return this;
     },
 
@@ -51,24 +56,29 @@ module.exports = {
 
         $.each(this.obj_stack, (function(key, stack){
             if(typeof this.rules[key] != "undefined"){
-                var dst_stack = this.obj_stack[this.rules[key].dst];
-                var callback = this.rules[key].cb;
-
-                $.each(stack, function(i, src){
-                    $.each(dst_stack, function(i, dst){
-                        if(is_collision(src, dst)){
-                            callback(src, dst);
-                        }
+                $.each(this.rules[key], function(i, rule){
+                    var dst_stack = this.obj_stack[rule.dst];
+                    var callback = rule.cb;
+                    
+                    $.each(stack, function(i, src){
+                        $.each(dst_stack, function(i, dst){
+                            if(is_collision(src, dst)){
+                                callback(src, dst);
+                            }
+                        });
                     });
-                });
-            };
+                }.bind(this));
+            }
         }).bind(this));
     },
-
+    
     register_collision_rule: function(src, dst, callback){
-        this.rules[src] = {
+        if(typeof this.rules[src] == "undefined")
+            this.rules[src] = [];
+
+        this.rules[src].push({
             dst: dst,
             cb: callback
-        };
+        });
     }
 };
