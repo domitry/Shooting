@@ -27,13 +27,13 @@ module.exports = {
             });
             
             obj.cnt=0;
-            var f = obj.update;
-            obj.update = function(){
-                f.apply(this);
+            obj.wrap_update(function(func){
+                func();
                 obj.cnt++;
                 if(obj.cnt < options.time)return true;
-                else return false;
-            };
+                this.clear();
+                return false;
+            });
         }
     }
 };
@@ -53,7 +53,6 @@ function Boss1(tx, ty, time, options){
     var dy = (ty - cy)/time;
 
     this.time = time;
-    this.score = 10000;
     this.cnt = 0;
     this.tsuyoi = this.obj_manager.add("en", "\u5f37", cx, cy, 0, dy, {
         live_even_outside: true,
@@ -170,11 +169,12 @@ Boss1.prototype.update = function(){
     //// check if it is dead
     $.each(this.yowais, function(i, yowai){
         if(yowai.hp <= 0){
-            yowai.update = function(){
+            yowai.wrap_update(function(){
                 game_manager.score += 100;
                 effect.explode(yowai.x, yowai.y);
+                yowai.clear();
                 return false;
-            };
+            });
         }
     });
 
@@ -193,20 +193,282 @@ Boss1.prototype.update = function(){
 
 Boss1.prototype.clear = function(){
     //// Game clear
-    this.options.game_manager.score += this.score;
+    this.options.game_manager.add_score(10000);
     this.options.enemy_manager.next_stage();
 
     var ret_false = function(){return false;};
 
     $.each(this.yowais, function(i, yowai){
-        yowai.update = ret_false;
+        yowai.clear();
     });
-    this.tsuyoi.update = ret_false;
+    this.tsuyoi.clear();
 };
 
 module.exports = Boss1;
 
 },{"../effect.js":1}],3:[function(require,module,exports){
+/*global require , module, $, jQuery*/
+
+var util = require("../util.js");
+var effect = require("../effect.js");
+
+function Boss3(options){
+    this.options = options;
+    this.obj_manager = options.obj_manager;
+    
+    var xy = [250, 10];
+    var CS = {
+        HEAD_SIZE: 30,
+        OBJ_NUM: 8,
+        CLOWD_HEIGHT: 90,
+        CLOWD_NUM: 4,
+        CLOWD_SIZE: 20
+    };
+    $.extend(this, CS);
+
+    this.objs = $.map(new Array(CS.OBJ_NUM), (function(){
+        var ret = this.obj_manager.add("en", "\u9f8d", xy[0], xy[1], 0, 0, {
+            live_even_outside: true,
+            size: CS.HEAD_SIZE,
+            bold: true,
+            radius: 10
+        });
+        ret.hp=20;
+        return ret;
+    }).bind(this));
+
+    this.clowds = [];
+    this.rain_roots = [];
+    this.phase = 0;
+
+    this.filo = (function(pair0, delay){
+        var num = delay*(CS.OBJ_NUM-1) + 1;
+        return {
+            arr: (util.array(num, 0)).map(function(){return [].concat(pair0);}),
+            seek: num-1,
+            get: function(i){
+                var j = this.index(this.seek - delay*i);
+                return this.arr[j];
+            },
+            push: function(pair){
+                this.seek = this.index(this.seek+1);
+                this.arr[this.seek] = pair;
+            },
+            index: function(val){
+                if(val >= num)return val-num;
+                if(val < 0)return num+val;
+                return val;
+            }
+        };
+    })(xy, 20);
+
+    this.head = this.objs[0];
+    this.head.dx = 1;
+    this.head.dy = 1;
+    this.head.wrap_update(function(func){
+        var ret = func();
+        if(this.x<0 || this.x > options.game_width - CS.HEAD_SIZE)
+            this.dx *= -1;
+        if(this.y<0 || this.y > CS.CLOWD_HEIGHT - CS.HEAD_SIZE)
+            this.dy *= -1;
+        return ret;
+    });
+
+    this.cnt=0;
+}
+
+Boss3.prototype.generateClowds = function(){
+    var cx = 20*Math.random();
+    var size = this.CLOWD_SIZE;
+    var dx = (this.options.game_width - cx*2)/this.CLOWD_NUM;
+    
+    this.clowds = util.array(this.CLOWD_NUM, 0).map(function(val, i){
+        var cy = this.CLOWD_HEIGHT + 50*Math.random();
+        var ret = [];
+        for(var j=0; j<5; j++){
+            ret.push(this.obj_manager.add("en", "\u96f2", cx + size*j, cy + 10*(j%2), 0, 0, {
+                size: size,
+                color: "#fff",
+                radius: 5
+            }));
+        }
+        cx += dx;
+        return ret;
+    }.bind(this));
+
+    this.rain_roots = $.map(this.clowds, function(arr, i){
+        return $.grep(arr, function(obj, i){return i%2;})
+            .map(function(obj, i){
+                return [obj.x + this.CLOWD_SIZE/2, obj.y + this.CLOWD_SIZE];
+            }.bind(this));
+    }.bind(this));
+};
+
+Boss3.prototype.update = function(){
+    this.cnt++;
+    var game_manager = this.options.game_manager;
+    var self = this.options.self;
+
+    this.filo.push([this.head.x, this.head.y]);
+    
+    $.each(this.objs, function(i, obj){
+        var pair = this.filo.get(i);
+        obj.x = pair[0];
+        obj.y = pair[1];
+    }.bind(this));
+
+    //// BOSS BAR
+    if(this.cnt <= 40){
+        $("#boss_bar")
+            .css("width", (this.cnt/40)*(this.options.game_width));
+    }else{
+        this.hp = this.objs.reduce(function(prev, obj){
+            return prev + (obj.hp < 0 ? 0 : obj.hp);
+        }, 0);
+        $("#boss_bar")
+            .css("width", this.hp*(this.options.game_width/(20*this.OBJ_NUM)));
+    }
+
+    if(this.phase == 0)
+        return this.update0();
+    else
+        return this.update1();
+};
+
+Boss3.prototype.update1 = function(){
+    if(this.hp == 0){
+    }
+    return false;
+};
+
+Boss3.prototype.update0 = function(){
+    //// Generate Clowd
+    if(this.cnt%500 == 0){
+        this.generateClowds();
+    }
+
+    if(this.cnt%500 < 50){
+        //// Fade in
+        var color = parseInt(255 - (this.cnt%500)*((255 - 170)/50));
+        $.each(this.clowds, function(i, arr){
+            $.each(arr, function(j, clowd){
+                clowd.changeColor("rgb("+[color, color, color].join(",") + ")");
+            });
+        });
+    }else if(this.cnt%500 < 400){
+        //// rain
+        var cnt = this.cnt%500 - 50;
+        if(cnt%100 == 0){
+            var theta = (Math.PI/3)*Math.random() + Math.PI/3;
+            this.rain_dx = 3*Math.cos(theta);
+            this.rain_dy = 3*Math.sin(theta);
+        }else if(cnt%100 < 80){
+            if(cnt%100 < 60 && !(cnt%5)){
+                $.each(this.rain_roots, function(i, xy){
+                    this.obj_manager.add("en_ball", "\u96e8", xy[0]-5, xy[1], this.rain_dx, this.rain_dy, {
+                        size: 10,
+                        color: "#c0c0ff"
+                    });
+                }.bind(this));
+            }
+        }
+
+    }else if(this.cnt%500 < 450){
+        //// Fade out
+        color = parseInt(170 + ((this.cnt%500 - 400))*((255 - 170)/50));
+        if(color < 230){
+        $.each(this.clowds, function(i, arr){
+            $.each(arr, function(j, clowd){
+                clowd.changeColor("rgb("+[color, color, color].join(",") + ")");
+            });
+        });
+        }else{
+            $.each(this.clowds, function(i, arr){
+                $.each(arr, function(j, clowd){
+                    clowd.clear();
+                });
+            });
+            this.clowds = [];
+        }
+    }
+
+    //// Fire!!
+    if(self.y > this.CLOWD_HIGHT && this.cnt%50 < 25 && this.cnt%5==0){
+        var dx = this.head.dx*3;
+        var dy = this.head.dy*3;
+        var ball = this.obj_manager.add("en_ball", "\u708e", this.head.x, this.head.y, dx, dy, {
+            color: "#f00",
+            size: 20
+        });
+        var limit_x = this.options.game_width - 10;
+        var limit_y = this.CLOWD_HEIGHT;
+        var COLL_MAX = 3;
+        ball.coll_cnt=0;
+        
+        ball.wrap_update(function(func){
+            if(this.x < 3 || this.x > limit_x){
+                if(this.coll_cnt < COLL_MAX){
+                    this.dx *= -1;
+                    this.coll_cnt++;
+                }
+            }
+            if(this.y < 3 || this.y > limit_y){
+                if(this.coll_cnt < COLL_MAX){
+                    this.dy *= -1;
+                    this.coll_cnt++;
+                }
+            }
+            return func();
+        });
+    }
+
+    //// check if it is dead
+    $.each(this.objs, function(i, obj){
+        if(obj.hp<=0){
+            obj.changeColor("#aaa");
+        }
+    });
+
+    if(this.hp<=0){
+        $.each(this.clowds, function(i, arr){
+            $.each(arr, function(j, clowd){
+                effect.explode(clowd.x, clowd.y, {
+                    speed: 5,
+                    num: 5,
+                    time: 200,
+                    r_max: 30
+                });
+                clowd.clear();
+            });
+        });
+
+        $.each(this.objs, function(i, obj){
+            obj.clear();
+            
+            effect.explode(obj.x, obj.y, {
+                speed: 5,
+                num: 30,
+                time: 1000,
+                r_max: 30
+            });
+        });
+
+        this.clowds = [];
+        this.phase = 0;
+        return false;
+    }
+
+    return true;
+};
+
+Boss3.prototype.clear = function(){
+    this.options.game_manager.add_score(10000);
+    this.options.enemy_manager.next_stage();
+};
+
+module.exports = Boss3;
+
+},{"../effect.js":1,"../util.js":18}],4:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 module.exports = {
@@ -214,10 +476,11 @@ module.exports = {
     type1: require("./type1.js"),
     type2: require("./type2.js"),
     type3: require("./type3.js"),
-    boss1: require("./boss1.js")
+    boss1: require("./boss1.js"),
+    boss3: require("./boss3.js")
 };
 
-},{"./boss1.js":2,"./title.js":4,"./type1.js":5,"./type2.js":6,"./type3.js":7}],4:[function(require,module,exports){
+},{"./boss1.js":2,"./boss3.js":3,"./title.js":5,"./type1.js":6,"./type2.js":7,"./type3.js":8}],5:[function(require,module,exports){
 /*global require , module, $, jQuery*/
 
 function Title(msg, press_key, _options){
@@ -266,7 +529,7 @@ Title.prototype.clear = function(){
 
 module.exports = Title;
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 /*global require , module, $, jQuery*/
 
 function Type1(x, y, tx, ty, time, leave_cnt, color, options){
@@ -277,14 +540,14 @@ function Type1(x, y, tx, ty, time, leave_cnt, color, options){
     var dy = (ty - y)/time;
 
     this.leave_cnt = leave_cnt;
-    this.score = 500;
     this.time = time;
     this.cnt = 0;
     this.obj = this.obj_manager.add("en", "\u96d1", x, y, dx, dy, {
         live_even_outside: true,
         color: color,
         size: 25,
-        radius: 20
+        radius: 20,
+        score: 1000
     });
     this.obj.hp = 10;
 }
@@ -311,8 +574,9 @@ Type1.prototype.update = function(){
     }
 
     if(this.obj.hp <= 0){
-        this.options.game_manager.score += this.score;
         require("../effect.js").explode(this.obj.x, this.obj.y);
+        this.options.item_manager.random_add(this.obj.x, this.obj.y, 0.5, "hp_up");
+        
         return false;
     }
 
@@ -320,14 +584,12 @@ Type1.prototype.update = function(){
 };
 
 Type1.prototype.clear = function(){
-    this.obj.update = function(){
-        return false;
-    };
+    this.obj.clear();
 };
 
 module.exports = Type1;
 
-},{"../effect.js":1}],6:[function(require,module,exports){
+},{"../effect.js":1}],7:[function(require,module,exports){
 /*global require , module, $, jQuery*/
 
 function Type2(x, y, tx, ty, time, leave_cnt, color, options){
@@ -339,14 +601,14 @@ function Type2(x, y, tx, ty, time, leave_cnt, color, options){
 
     this.leave_cnt = leave_cnt;
     this.time = time;
-    this.score = 1000;
     this.cnt = 0;
     this.hp = 10;
     this.obj = this.obj_manager.add("en", "\u9b5a", x, y, dx, dy, {
         live_even_outside: true,
         color: color,
         size: 25,
-        radius: 20
+        radius: 20,
+        score: 1000
     });
     this.obj.hp = 10;
 }
@@ -378,8 +640,8 @@ Type2.prototype.update = function(){
     }
 
     if(this.obj.hp <= 0){
-        this.options.game_manager.score += this.score;
         require("../effect.js").explode(this.obj.x, this.obj.y);
+        this.options.item_manager.random_add(this.obj.x, this.obj.y, 0.3, "3way");
         return false;
     }
 
@@ -387,14 +649,12 @@ Type2.prototype.update = function(){
 };
 
 Type2.prototype.clear = function(){
-    this.obj.update = function(){
-        return false;
-    };
+    this.obj.clear();
 };
 
 module.exports = Type2;
 
-},{"../effect.js":1}],7:[function(require,module,exports){
+},{"../effect.js":1}],8:[function(require,module,exports){
 /*global require , module, $, jQuery*/
 
 function Type3(x, y0, ty, color, options){
@@ -404,14 +664,14 @@ function Type3(x, y0, ty, color, options){
     this.time = 50;
     this.y0 = y0;
     this.ty = ty;
-    this.score = 1000;
     this.leave_cnt = 500;
     this.cnt = 0;
     this.obj = this.obj_manager.add("en", "\u6575", x, y0, 0, 0, {
         live_even_outside: true,
         color: color,
         size: 25,
-        radius: 20
+        radius: 20,
+        score: 1000
     });
     this.obj.hp = 10;
 }
@@ -433,16 +693,14 @@ Type3.prototype.update = function(){
             var ball = this.options.obj_manager.add("en_ball", "\u2606", this.obj.x, this.obj.y, this.ball_dx, this.ball_dy, {});
             ball.cnt = 0;
 
-            var func = ball.update;
-            ball.update = function(){
+            ball.wrap_update(function(func){
                 this.cnt++;
                 if(this.cnt == 50){
                     this.dx = (target_x - this.x)/50;
                     this.dy = (target_y - this.y)/50;
                 }
-                func.apply(this);
-                return true;
-            };
+                return func();
+            });
         }
 
     }else if(this.cnt - this.time == 50){
@@ -455,8 +713,8 @@ Type3.prototype.update = function(){
     }
 
     if(this.obj.hp <= 0){
-        this.options.game_manager.score += this.score;
         require("../effect.js").explode(this.obj.x, this.obj.y);
+        this.options.item_manager.random_add(this.obj.x, this.obj.y, 0.1);
         return false;
     }
 
@@ -464,14 +722,12 @@ Type3.prototype.update = function(){
 };
 
 Type3.prototype.clear = function(){
-    this.obj.update = function(){
-        return false;
-    };
+    this.obj.clear();
 };
 
 module.exports = Type3;
 
-},{"../effect.js":1}],8:[function(require,module,exports){
+},{"../effect.js":1}],9:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 module.exports = {
@@ -522,7 +778,7 @@ module.exports = {
     }
 };
 
-},{"./enemy/list.js":3,"./plan.js":14}],9:[function(require,module,exports){
+},{"./enemy/list.js":4,"./plan.js":17}],10:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 module.exports = function(_options){
@@ -573,7 +829,79 @@ module.exports = function(_options){
         .start();
 };
 
-},{"./manager.js":11}],10:[function(require,module,exports){
+},{"./manager.js":14}],11:[function(require,module,exports){
+/*global require, module, $, jQuery*/
+
+module.exports = {
+    "hp_up": {
+        char: "\u56de",
+        options:{
+            radius: 20,
+            typename: "hp_up",
+            color: "#feb24c"
+        },
+        apply_: function(self){
+            self.recovery(10);
+        }
+    },
+    "3way": {
+        char: "\u2462",
+        options:{
+            radius: 20,
+            typename: "3way",
+            color: "#00f"
+        },
+        apply_: function(self){
+            if(typeof self.shot_mode == "undefined"){
+                self.wrap_shot(function(old_func){
+                    var theta = Math.PI/3;
+                    var dx = -1*self.options.shot_speed*Math.cos(theta);
+                    var dy = -1*self.options.shot_speed*Math.sin(theta);
+                    this.options.obj_manager.add("self_ball", "\u26AC", self.x, self.y, dx, dy);
+                    this.options.obj_manager.add("self_ball", "\u26AC", self.x, self.y, -1*dx, dy);
+                    old_func();
+                });
+            }
+            self.shot_mode = "3way";
+        }
+    }
+};
+
+},{}],12:[function(require,module,exports){
+/*global require, module, $, jQuery*/
+
+module.exports = {
+    init: function(options){
+        this.options = options;
+        this.item_list = require("./item/list.js");
+        
+         options.obj_manager.register_collision_rule("self", "item", function(self, item){
+             var tn = item.options.typename;
+             this.item_list[tn].apply_(self);
+             item.clear();
+        }.bind(this));
+    },
+    add: function(type, x, y){
+        var i = this.item_list[type];
+        var item = this.options.obj_manager.add("item", i.char, x, y, 0, 1, i.options);
+        item.wrap_update(this.update);
+    },
+    update: function(old_func){
+        this.dy += 0.3;
+        return old_func();
+    },
+    random_add: function(x, y, p, type){
+        if(typeof type == "undefined"){
+            var keys = Object.keys(this.item_list);
+            type= keys[Math.floor(Math.random() * keys.length)];
+        }
+        if(p < Math.random()){
+            this.add(type, x, y);
+        };
+    }
+};
+
+},{"./item/list.js":11}],13:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 module.exports = {
@@ -617,7 +945,7 @@ module.exports = {
     }
 };
 
-},{}],11:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 module.exports = {
@@ -628,12 +956,13 @@ module.exports = {
 
         var managers = {
             game_manager: this,
-            obj_manager: (require("./obj_manager.js")).init(div, options),
+            obj_manager: (require("./obj_manager.js")),
             enemy_manager: (require("./enemy_manager.js")),
-            key_manager: (require("./key_manager.js")).init(),
+            key_manager: (require("./key_manager.js")),
+            item_manager: (require("./item_manager.js")),
             effect_system: (require("./effect.js"))
         };
-
+        
         $.extend(this, {
             div: div,
             options: options,
@@ -646,68 +975,114 @@ module.exports = {
         return this;
     },
     start: function(){
+        this.obj_manager.init(["en", "en_ball", "self", "self_ball", "item", "others"], this.options),
+        this.key_manager.init(this.options);
+        this.item_manager.init(this.options);
+        this.effect_system.init(this.obj_manager);
+
         var self = this.obj_manager.add("self", "\u672a", this.options.game_width/2, this.options.game_height-30, 0, 0, {
+            size: 18,
             radius: 10,
-            live_even_outside: true
+            live_even_outside: true,
+            hp: 50,
+            hp_max: 50,
+            hp_rest: 0,
+            shot_speed: 6
         });
-        self.hp = 50;
+        
+        self.wrap_update(function(func){
+            var limit_x = this.options.game_width - self.options.size;
+            var limit_y = this.options.game_height - self.options.size;
+            if(this.x < 0)this.x=0;
+            else if(this.x > limit_x)this.x = limit_x;
+            if(this.y < 0)this.y=0;
+            else if(this.y > limit_y)this.y = limit_y;
 
+            if(this.options.hp_rest > 0){
+                this.options.hp += 1;
+                this.options.hp_rest--;
+            }
+            return func();
+        });
+
+        self.recovery = function(val){
+            var o = this.options;
+            o.hp_rest += val;
+            if(o.hp + o.hp_rest > o.hp_max){
+                o.hp_rest = o.max_val - o.hp;
+            }
+        };
+
+        self.shot = function(){
+            this.options.obj_manager.add("self_ball", "\u26AC", self.x, self.y, 0, -1*this.options.shot_speed);
+        };
+
+        self.wrap_shot = function(new_func){
+            var old_func = this.shot;
+            this.shot = function(){
+                new_func.call(this, old_func.bind(this));
+            };
+        };
+        
         this.obj_manager.register_collision_rule("self", "en_ball", (function(self, ball){
-            self.hp--;
-            $("#self_bar").css("width", (this.options.game_width/50)*(self.hp < 0 ? 0 : self.hp));
+            self.options.hp--;
+            $("#self_bar").css("width", (this.options.game_width/50)*(self.options.hp < 0 ? 0 : self.options.hp));
             ball.clear();
-
-            if(self.hp <= 0){
+            
+            if(self.options.hp <= 0){
                 this.effect_system.explode(self.x, self.y);
                 this.game_over();
             }
         }).bind(this));
 
-        var nf = function(){};
+        var cnt = 0;
+        var nf = require("./util.js").ret_no;
         this.key_manager.register(37, nf, nf, function(){self.x -= 3;});
         this.key_manager.register(39, nf, nf, function(){self.x += 3;});
-        this.key_manager.register(32, (function(){
-            this.obj_manager.add("self_ball", "\u26AC", self.x, self.y, 0, -3);
-        }).bind(this), nf, nf);
-
+        this.key_manager.register(32, nf, nf, (function(){if(cnt%5 == 0)self.shot();}));
         this.enemy_manager.init(this.obj_manager, $.extend({self: self}, this.options));
-        this.effect_system.init(this.obj_manager);
-
-        // fuck'n dirty
-        var key_manager = this.key_manager;
-        var obj_manager = this.obj_manager;
-        var enemy_manager = this.enemy_manager;
-        var cnt = 0;
-
-        var stop_flag = false;
-        this.stop = function(flag){
-            stop_flag = flag;
-        };
-
-        var thisObj = this; //....
-        var update_score = function(){
-            var text = "score: " + ("00000" + (thisObj.score)).slice(-6);
-            $("#score").text(text);
-        };
-
-        this.reset_cnt = function(){
-            cnt=0;
-        };
-
         
-        this.restart = function(){
-            stop_flag = false;
+        //// Main loop
+        (function(){
+            var score_rest = 0;
+            
+            this.add_score = function(val){
+                score_rest += val;
+            };
 
-            (function(){
-                key_manager.update();
-                enemy_manager.update(cnt++);
-                obj_manager.update();
-                update_score();
+            var update_score = function(){
+                if(score_rest > 0){
+                    score_rest -= 50;
+                    this.score += 50;
+                    var text = "score: " + ("00000" + (this.score)).slice(-6);
+                    $("#score").text(text);
+                }
+            }.bind(this);
+            
+            var stop_flag = false;
+            this.stop = function(flag){
+                stop_flag = flag;
+            };
+            
+            this.reset_cnt = function(){
+                cnt=0;
+            };
+            
+            var thisObj = this;
+            this.restart = function(){
+                stop_flag = false;
+                
+                (function(){
+                    thisObj.key_manager.update();
+                    thisObj.enemy_manager.update(cnt++);
+                    thisObj.obj_manager.update();
+                    update_score();
 
-                if(!stop_flag)
-                    requestAnimationFrame(arguments.callee);
-            })();
-        };
+                    if(!stop_flag)
+                        requestAnimationFrame(arguments.callee);
+                })();
+            };
+        }).call(this);
 
         this.restart();
         return this;
@@ -722,32 +1097,30 @@ module.exports = {
     }
 };
 
-},{"./effect.js":1,"./enemy_manager.js":8,"./key_manager.js":10,"./obj_manager.js":12}],12:[function(require,module,exports){
+},{"./effect.js":1,"./enemy_manager.js":9,"./item_manager.js":12,"./key_manager.js":13,"./obj_manager.js":15,"./util.js":18}],15:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 module.exports = {
-    init: function(div, _options){
+    init: function(types, _options){
         var options = $.extend({}, _options);
 
         $.extend(this, {
-            div: div,
+            div: options.div,
             options: options,
-            obj_stack: {
-                "self": [],
-                "en": [],
-                "self_ball": [],
-                "en_ball": [],
-                "others": []
-            },
+            obj_stack: {},
             rules: {}
         });
 
+        $.each(types, function(i, name){
+            this.obj_stack[name] = [];
+        }.bind(this));
+   
         return this;
     },
 
     add: function(type, str, x, y, dx, dy, options){
         var Object = require("./object.js");
-        var obj = new Object(this.div, str, x, y, dx, dy, options);
+        var obj = new Object(this.div, str, x, y, dx, dy, $.extend(options, this.options));
 
         this.obj_stack[type].push(obj);
         return obj;
@@ -758,14 +1131,12 @@ module.exports = {
 
         $.each(this.obj_stack, (function(key, stack){
             this.obj_stack[key] = $.grep(stack, function(o){
-                var res = o.update();
-
-                if(!res || ((o.x<0 || o.y<0 || o.x > options.game_width || o.y > options.game_height)&& !o.options.live_even_outside)){
+                var ret = o.update();
+                if(((o.x<0 || o.y<0 || o.x > options.game_width || o.y > options.game_height)&& !o.options.live_even_outside)){
                     o.clear();
                     return false;
                 }
-
-                return true;
+                return ret;
             });
         }).bind(this));
 
@@ -778,30 +1149,37 @@ module.exports = {
 
         $.each(this.obj_stack, (function(key, stack){
             if(typeof this.rules[key] != "undefined"){
-                var dst_stack = this.obj_stack[this.rules[key].dst];
-                var callback = this.rules[key].cb;
-
-                $.each(stack, function(i, src){
-                    $.each(dst_stack, function(i, dst){
-                        if(is_collision(src, dst)){
-                            callback(src, dst);
-                        }
+                $.each(this.rules[key], function(i, rule){
+                    var dst_stack = this.obj_stack[rule.dst];
+                    var callback = rule.cb;
+                    
+                    $.each(stack, function(i, src){
+                        $.each(dst_stack, function(i, dst){
+                            if(is_collision(src, dst)){
+                                callback(src, dst);
+                            }
+                        });
                     });
-                });
-            };
+                }.bind(this));
+            }
         }).bind(this));
     },
-
+    
     register_collision_rule: function(src, dst, callback){
-        this.rules[src] = {
+        if(typeof this.rules[src] == "undefined")
+            this.rules[src] = [];
+
+        this.rules[src].push({
             dst: dst,
             cb: callback
-        };
+        });
     }
 };
 
-},{"./object.js":13}],13:[function(require,module,exports){
+},{"./object.js":16}],16:[function(require,module,exports){
 /*global require, module, $, jQuery*/
+
+var util = require("./util.js");
 
 function Object(parent, str, x, y, dx, dy, _options){
     this.options = $.extend({
@@ -809,7 +1187,8 @@ function Object(parent, str, x, y, dx, dy, _options){
         bold: false,
         color: "#000",
         radius: 3,
-        live_even_outside: false
+        live_even_outside: false,
+        score: 0
     }, _options);
 
     this.x = x;
@@ -842,6 +1221,13 @@ Object.prototype.update = function(){
     return true;
 };
 
+Object.prototype.wrap_update = function(new_func){
+    var old_func = this.update;
+    this.update = function(){
+        return new_func.call(this, old_func.bind(this));
+    };
+};
+
 Object.prototype.changeColor = function(color){
     this.selection.css({
         color: color
@@ -849,6 +1235,8 @@ Object.prototype.changeColor = function(color){
 };
 
 Object.prototype.clear = function(){
+    this.options.game_manager.add_score(this.options.score);
+    this.wrap_update(util.ret_f);
     this.selection.remove();
 };
 
@@ -866,7 +1254,7 @@ Object.prototype.center = function(){
 
 module.exports = Object;
 
-},{"./util.js":15}],14:[function(require,module,exports){
+},{"./util.js":18}],17:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 module.exports = [
@@ -907,10 +1295,10 @@ module.exports = [
         1700: [
             {type: "type3", arg: [400, -10, 40, "#0f0"]}
         ],
-        2100: [
+        2000: [
             {type: "title", arg: ["!! BOSS !!", false]}
         ],
-        2300: [
+        2200: [
             {type: "boss1", arg: [250, 50, 40], clear: true}
         ]
     },
@@ -921,11 +1309,22 @@ module.exports = [
         100: [
             {type: "type2", arg: [250,-30, 400, 40, 50, 400, "#f00"]},
             {type: "type2", arg: [250, -30, 40, 140, 50, 400, "#f00"]}
+        ],
+        600: [
+            {type: "boss3", arg: []}
+        ]
+    },
+    {
+        0: [
+            {type: "title", arg: ["Stage3", false]}
+        ],
+        100: [
+            {type: "boss4", arg: []}
         ]
     }
 ];
 
-},{}],15:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 module.exports = {
@@ -940,14 +1339,74 @@ module.exports = {
             uuid += (i == 12 ? 4 : (i == 16 ? (random & 3 | 8) : random)).toString(16);
         }
         return uuid;
+    },
+    rk4: function(t0, x0, integrand, t1, h){
+        var x = x0;
+        var t = t0;
+
+        if(typeof h == "undefined")h = 1e-3;
+
+        function add(){
+            return [].reduce.call(arguments, function(prev, curr){
+                return $.map(curr, function(val, i){
+                    return val + prev[i];
+                });
+            });
+        }
+
+        function mul_c(c, vec){
+            return $.map(vec, function(val){
+                return c*val;
+            });
+        }
+        
+        while(t < t1){
+            var k1s = integrand(t, x);
+            var k2s = integrand(t+h/2, add(x, mul_c(h/2, k1s)));
+            var k3s = integrand(t+h/2, add(x, mul_c(h/2, k2s)));
+            var k4s = integrand(t+h, add(x, mul_c(h, k3s)));
+            x = add(x, mul_c(h/6, add(k1s, mul_c(2, k2s), mul_c(2, k3s), k4s)));
+            t += h;
+        }
+        return x;
+    },
+    euler: function(t0, x0, integrand, t1, h){
+        var x = x0;
+        var t = t0;
+
+        if(typeof h == "undefined")h = 1e-3;
+
+        while(t < t1){
+            var dx = integrand(t+h, x);
+            x = $.map(x, function(val, i){
+                return val + h*dx[i];
+            });
+            t+=h;
+        }
+
+        return x;
+    },
+    array: function(num, init){
+        if(typeof init == "undefined")init = 0;
+        var ret = new Array(num);
+        for(var i=0; i<num; i++)ret[i] = init;
+        return ret;
+    },
+    ret_t: function(){
+        return true;
+    },
+    ret_f: function(){
+        return false;
+    },
+    ret_no: function(){
     }
 };
 
-},{}],16:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 /*global require, module, $, jQuery*/
 
 $(function(){
     (require("./init.js"))();
 });
 
-},{"./init.js":9}]},{},[16]);
+},{"./init.js":10}]},{},[19]);
