@@ -1,19 +1,12 @@
 /*global require, module, $, jQuery*/
 
 module.exports = {
-    init: function(div, _options){
+    init: function(types, _options){
         var options = $.extend({}, _options);
 
         $.extend(this, {
-            div: div,
+            div: options.div,
             options: options,
-            obj_stack: {
-                "self": [],
-                "en": [],
-                "self_ball": [],
-                "en_ball": [],
-                "others": []
-            },
             obj_stack: {},
             rules: {}
         });
