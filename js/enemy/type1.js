@@ -8,14 +8,14 @@ function Type1(x, y, tx, ty, time, leave_cnt, color, options){
     var dy = (ty - y)/time;
 
     this.leave_cnt = leave_cnt;
-    this.score = 500;
     this.time = time;
     this.cnt = 0;
     this.obj = this.obj_manager.add("en", "\u96d1", x, y, dx, dy, {
         live_even_outside: true,
         color: color,
         size: 25,
-        radius: 20
+        radius: 20,
+        score: 1000
     });
     this.obj.hp = 10;
 }
@@ -42,7 +42,6 @@ Type1.prototype.update = function(){
     }
 
     if(this.obj.hp <= 0){
-        this.options.game_manager.score += this.score;
         require("../effect.js").explode(this.obj.x, this.obj.y);
         return false;
     }

@@ -49,6 +49,8 @@ Object.prototype.changeColor = function(color){
 };
 
 Object.prototype.clear = function(){
+    this.options.game_manager.add_score(this.options.score);
+    this.wrap_update(util.ret_f);
     this.selection.remove();
 };
 

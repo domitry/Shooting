@@ -12,7 +12,6 @@ function Boss1(tx, ty, time, options){
     var dy = (ty - cy)/time;
 
     this.time = time;
-    this.score = 10000;
     this.cnt = 0;
     this.tsuyoi = this.obj_manager.add("en", "\u5f37", cx, cy, 0, dy, {
         live_even_outside: true,
@@ -152,7 +151,7 @@ Boss1.prototype.update = function(){
 
 Boss1.prototype.clear = function(){
     //// Game clear
-    this.options.game_manager.score += this.score;
+    this.options.game_manager.add_score(10000);
     this.options.enemy_manager.next_stage();
 
     var ret_false = function(){return false;};
