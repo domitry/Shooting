@@ -33,14 +33,12 @@ module.exports = {
 
         $.each(this.obj_stack, (function(key, stack){
             this.obj_stack[key] = $.grep(stack, function(o){
-                var res = o.update();
-
-                if(!res || ((o.x<0 || o.y<0 || o.x > options.game_width || o.y > options.game_height)&& !o.options.live_even_outside)){
+                var ret = o.update();
+                if(((o.x<0 || o.y<0 || o.x > options.game_width || o.y > options.game_height)&& !o.options.live_even_outside)){
                     o.clear();
                     return false;
                 }
-
-                return true;
+                return ret;
             });
         }).bind(this));
 
