@@ -20,7 +20,7 @@ module.exports = {
 
     add: function(type, str, x, y, dx, dy, options){
         var Object = require("./object.js");
-        var obj = new Object(this.div, str, x, y, dx, dy, options);
+        var obj = new Object(this.div, str, x, y, dx, dy, $.extend(options, this.options));
 
         this.obj_stack[type].push(obj);
         return obj;
