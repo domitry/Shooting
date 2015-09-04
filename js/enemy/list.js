@@ -6,5 +6,6 @@ module.exports = {
     type2: require("./type2.js"),
     type3: require("./type3.js"),
     boss1: require("./boss1.js"),
-    boss3: require("./boss3.js")
+    boss3: require("./boss3.js"),
+    boss4: require("./boss4.js")
 };
