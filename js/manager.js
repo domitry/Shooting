@@ -8,12 +8,13 @@ module.exports = {
 
         var managers = {
             game_manager: this,
-            obj_manager: (require("./obj_manager.js")).init(div, options),
+            obj_manager: (require("./obj_manager.js")),
             enemy_manager: (require("./enemy_manager.js")),
-            key_manager: (require("./key_manager.js")).init(),
+            key_manager: (require("./key_manager.js")),
+            item_manager: (require("./item_manager.js")),
             effect_system: (require("./effect.js"))
         };
-
+        
         $.extend(this, {
             div: div,
             options: options,
@@ -26,6 +27,11 @@ module.exports = {
         return this;
     },
     start: function(){
+        this.obj_manager.init(["en", "en_ball", "self", "self_ball", "item", "others"], this.options),
+        this.key_manager.init(this.options);
+        this.item_manager.init(this.options);
+        this.effect_system.init(this.obj_manager);
+
         var self = this.obj_manager.add("self", "\u672a", this.options.game_width/2, this.options.game_height-30, 0, 0, {
             radius: 10,
             live_even_outside: true
