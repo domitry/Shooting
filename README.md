@@ -7,6 +7,8 @@ STG working on Slack Web App.
 
 [The newest version here](https://dl.dropboxusercontent.com/u/47978121/shooting/index.html)
 
+Press <- and -> key to move, press space key to shoot.
+
 ## How to use
 
 ![](https://i.gyazo.com/5ca227361f985c8a9ebc002866816383.png)
