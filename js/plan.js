@@ -38,10 +38,10 @@ module.exports = [
         1700: [
             {type: "type3", arg: [400, -10, 40, "#0f0"]}
         ],
-        2100: [
+        2000: [
             {type: "title", arg: ["!! BOSS !!", false]}
         ],
-        2300: [
+        2200: [
             {type: "boss1", arg: [250, 50, 40], clear: true}
         ]
     },
@@ -52,6 +52,17 @@ module.exports = [
         100: [
             {type: "type2", arg: [250,-30, 400, 40, 50, 400, "#f00"]},
             {type: "type2", arg: [250, -30, 40, 140, 50, 400, "#f00"]}
+        ],
+        600: [
+            {type: "boss3", arg: []}
+        ]
+    },
+    {
+        0: [
+            {type: "title", arg: ["Stage3", false]}
+        ],
+        100: [
+            {type: "boss4", arg: []}
         ]
     }
 ];
