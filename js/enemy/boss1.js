@@ -128,11 +128,12 @@ Boss1.prototype.update = function(){
     //// check if it is dead
     $.each(this.yowais, function(i, yowai){
         if(yowai.hp <= 0){
-            yowai.update = function(){
+            yowai.wrap_update(function(){
                 game_manager.score += 100;
                 effect.explode(yowai.x, yowai.y);
+                yowai.clear();
                 return false;
-            };
+            });
         }
     });
 
@@ -157,9 +158,9 @@ Boss1.prototype.clear = function(){
     var ret_false = function(){return false;};
 
     $.each(this.yowais, function(i, yowai){
-        yowai.update = ret_false;
+        yowai.clear();
     });
-    this.tsuyoi.update = ret_false;
+    this.tsuyoi.clear();
 };
 
 module.exports = Boss1;

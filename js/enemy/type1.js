@@ -50,9 +50,7 @@ Type1.prototype.update = function(){
 };
 
 Type1.prototype.clear = function(){
-    this.obj.update = function(){
-        return false;
-    };
+    this.obj.clear();
 };
 
 module.exports = Type1;

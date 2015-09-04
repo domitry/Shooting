@@ -36,16 +36,14 @@ Type3.prototype.update = function(){
             var ball = this.options.obj_manager.add("en_ball", "\u2606", this.obj.x, this.obj.y, this.ball_dx, this.ball_dy, {});
             ball.cnt = 0;
 
-            var func = ball.update;
-            ball.update = function(){
+            ball.wrap_update(function(func){
                 this.cnt++;
                 if(this.cnt == 50){
                     this.dx = (target_x - this.x)/50;
                     this.dy = (target_y - this.y)/50;
                 }
-                func.apply(this);
-                return true;
-            };
+                return func();
+            });
         }
 
     }else if(this.cnt - this.time == 50){
@@ -66,9 +64,7 @@ Type3.prototype.update = function(){
 };
 
 Type3.prototype.clear = function(){
-    this.obj.update = function(){
-        return false;
-    };
+    this.obj.clear();
 };
 
 module.exports = Type3;

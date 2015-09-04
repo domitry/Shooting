@@ -26,13 +26,13 @@ module.exports = {
             });
             
             obj.cnt=0;
-            var f = obj.update;
-            obj.update = function(){
-                f.apply(this);
+            obj.wrap_update(function(func){
+                func();
                 obj.cnt++;
                 if(obj.cnt < options.time)return true;
-                else return false;
-            };
+                this.clear();
+                return false;
+            });
         }
     }
 };

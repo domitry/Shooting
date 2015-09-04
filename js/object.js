@@ -42,6 +42,13 @@ Object.prototype.update = function(){
     return true;
 };
 
+Object.prototype.wrap_update = function(new_func){
+    var old_func = this.update;
+    this.update = function(){
+        return new_func.call(this, old_func.bind(this));
+    };
+};
+
 Object.prototype.changeColor = function(color){
     this.selection.css({
         color: color
