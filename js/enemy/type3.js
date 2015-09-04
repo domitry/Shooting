@@ -57,6 +57,7 @@ Type3.prototype.update = function(){
 
     if(this.obj.hp <= 0){
         require("../effect.js").explode(this.obj.x, this.obj.y);
+        this.options.item_manager.random_add(this.obj.x, this.obj.y, 0.1);
         return false;
     }
 
