@@ -1,12 +1,15 @@
 /*global require, module, $, jQuery*/
 
+var util = require("./util.js");
+
 function Object(parent, str, x, y, dx, dy, _options){
     this.options = $.extend({
         size: 18,
         bold: false,
         color: "#000",
         radius: 3,
-        live_even_outside: false
+        live_even_outside: false,
+        score: 0
     }, _options);
 
     this.x = x;
